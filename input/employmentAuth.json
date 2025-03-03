@@ -8,7 +8,7 @@
       "EmploymentAuthorizationDocumentCredential"
     ],
     "issuer": {
-      "id": "did:key:zDnaegE6RR3atJtHKwTRTWHsJ3kNHqFwv7n9YjTgmU7TyfU76",
+      "id": "did:key:z6DtcgBo65Ms1qzug5JAgVZH3sEpH7vp4q6D2T3cdHnyBFGj",
       "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NgUPr/HwADaAIhG61j/AAAAABJRU5ErkJggg=="
     },
     "credentialSubject": {

@@ -6,13 +6,13 @@
 */
 import { readFile } from 'fs/promises';
 import { base58btc } from "multiformats/bases/base58";
-import {ed25519 as ed} from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils';
 import  canonicalize from 'canonicalize';
 import equal from 'deep-equal';
+import { schnorr } from '@noble/curves/secp256k1';
 
-const baseDir = "./output/eddsa-jcs-2022/";
+const baseDir = "./output/bip340-jcs-2025/";
 
 // Read signed input document from a file or just specify it right here.
 // Use 'signedJCSOldStyle.json' or 'signedJCS.json'
@@ -79,6 +79,9 @@ console.log(bytesToHex(proofHash));
 // Combine hashes
 let combinedHash = concatBytes(proofHash, docHash); // Hash order different from draft
 
+let hashData = sha256(combinedHash)
+writeFile(baseDir + 'finalHashJCS.txt', bytesToHex(hashData));
+
 // Get public key
 let encodedPbk = signedDocument.proof.verificationMethod.split("#")[1];
 let pbk = base58btc.decode(encodedPbk);
@@ -87,5 +90,5 @@ console.log(`Public Key hex: ${bytesToHex(pbk)}, Length: ${pbk.length}`);
 
 // Verify
 let signature = base58btc.decode(signedDocument.proof.proofValue);
-let result = ed.verify(signature, combinedHash, pbk);
+let result = schnorr.verify(signature, hashData, pbk);
 console.log(`Signature verified: ${result}`);

@@ -11,10 +11,11 @@ import { base58btc } from "multiformats/bases/base58";
 import {ed25519 as ed} from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils';
+import { schnorr } from '@noble/curves/secp256k1';
 
-// const baseDir = "./output/eddsa-rdfc-2022/";
-const baseDir = "./output/eddsa-rdfc-2022/employ/";
-
+const baseDir = "./output/bip340-rdfc-2025/";
+// const baseDir = "./output/eddsa-rdfc-2022/employ/";
+// 
 jsonld.documentLoader = localLoader;
 
 // Read signed input document from a file or just specify it right here.
@@ -46,7 +47,7 @@ proofConfig.cryptosuite = signedDocument.proof.cryptosuite;
 proofConfig.created = signedDocument.proof.created;
 proofConfig.verificationMethod = signedDocument.proof.verificationMethod;
 proofConfig.proofPurpose = signedDocument.proof.proofPurpose;
-proofConfig["@context"] = signedDocument["@context"]; // Missing from draft!!!
+proofConfig["@context"] = signedDocument["@context"];
 
 // canonize the proof config
 let proofCanon = await jsonld.canonize(proofConfig);
@@ -59,7 +60,9 @@ console.log("Hash of canonized proof in hex:")
 console.log(bytesToHex(proofHash));
 
 // Combine hashes
-let combinedHash = concatBytes(proofHash, docHash); // Hash order different from draft
+let combinedHash = concatBytes(proofHash, docHash); 
+
+let hashData = sha256(combinedHash);
 
 // Get public key
 let encodedPbk = signedDocument.proof.verificationMethod.split("#")[1];
@@ -69,5 +72,5 @@ console.log(`Public Key hex: ${bytesToHex(pbk)}, Length: ${pbk.length}`);
 
 // Verify
 let signature = base58btc.decode(signedDocument.proof.proofValue);
-let result = await ed.verify(signature, combinedHash, pbk);
+let result = await schnorr.verify(signature, hashData, pbk);
 console.log(`Signature verified: ${result}`);

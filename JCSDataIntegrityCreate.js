@@ -5,19 +5,20 @@
 
 import { mkdir, readFile, writeFile } from 'fs/promises';
 import { base58btc } from "multiformats/bases/base58";
-import { ed25519 as ed } from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
-import { bytesToHex, concatBytes } from '@noble/hashes/utils';
+import { bytesToHex, concatBytes, hexToBytes } from '@noble/hashes/utils';
 import canonicalize from 'canonicalize';
+import { schnorr } from '@noble/curves/secp256k1';
 
 // Create output directory for the results
-const baseDir = "./output/eddsa-jcs-2022/";
+const baseDir = "./output/bip340-jcs-2025/";
 let status = await mkdir(baseDir, {recursive: true});
 
-const keyPair = {
-  publicKeyMultibase: "z6MkrJVnaZkeFzdQyMZu1cgjg7k1pZZ6pvBQ7XJPt4swbTQ2",
-  privateKeyMultibase: "z3u2en7t5LR2WtQH5PfFqMqwVHBeXouLzo6haApm8XHqvjxq"
-};
+const keyPair = JSON.parse(
+  await readFile(
+    new URL('./input/keyPair.json', import.meta.url)
+  )
+);
 
 // Read input document from a file or just specify it right here.
 let document = JSON.parse(
@@ -44,7 +45,7 @@ writeFile(baseDir + 'docHashJCS.txt', bytesToHex(docHash));
 // Set proof options per draft
 let proofConfig = {};
 proofConfig.type = "DataIntegrityProof";
-proofConfig.cryptosuite = "eddsa-jcs-2022";
+proofConfig.cryptosuite = "bip340-jcs-2025";
 proofConfig.created = "2023-02-24T23:36:38Z";
 // proofConfig.verificationMethod = "https://vc.example/issuers/5678#" + keyPair.publicKeyMultibase;
 proofConfig.verificationMethod = 'did:key:' + keyPair.publicKeyMultibase + '#' + keyPair.publicKeyMultibase;
@@ -69,11 +70,19 @@ writeFile(baseDir + 'proofHashJCS.txt', bytesToHex(proofHash));
 let combinedHash = concatBytes(proofHash, docHash); // Hash order different from draft
 writeFile(baseDir + 'combinedHashJCS.txt', bytesToHex(combinedHash));
 
+let hashData = sha256(combinedHash)
+writeFile(baseDir + 'hashDataJCS.txt', bytesToHex(combinedHash));
+
 // Sign
 let privKey = base58btc.decode(keyPair.privateKeyMultibase);
 privKey = privKey.slice(2, 34); // only want the first 2-34 bytes
 console.log(`Secret key length ${privKey.length}, value in hex:`);
-let signature = ed.sign(combinedHash, privKey);
+
+let randomAux = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
+writeFile(baseDir + 'randomAuxHexJCS.txt', randomAux);
+
+
+let signature = schnorr.sign(hashData, privKey, randomAux);
 writeFile(baseDir + 'sigHexJCS.txt', bytesToHex(signature));
 console.log("Computed Signature from private key:");
 console.log(base58btc.encode(signature));
@@ -83,7 +92,7 @@ writeFile(baseDir + 'sigBTC58JCS.txt', base58btc.encode(signature));
 let pbk = base58btc.decode(keyPair.publicKeyMultibase);
 pbk = pbk.slice(2, pbk.length); // First two bytes are multi-format indicator
 console.log(`Public Key hex: ${bytesToHex(pbk)}, Length: ${pbk.length}`);
-let result = await ed.verify(signature, combinedHash, pbk);
+let result = await schnorr.verify(signature, hashData, pbk);
 console.log(`Signature verified: ${result}`);
 
 // Construct Signed Document

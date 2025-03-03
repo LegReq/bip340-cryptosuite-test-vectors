@@ -8,12 +8,12 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import jsonld from 'jsonld';
 import { localLoader } from './documentLoader.js';
 import { base58btc } from "multiformats/bases/base58";
-import {ed25519 as ed} from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils';
+import { schnorr } from '@noble/curves/secp256k1';
 
 // Create output directory for the results
-const baseDir = "./output/eddsa-set-chain-2022/";
+const baseDir = "./output/bip340-set-chain-2025/";
 let status = await mkdir(baseDir, {recursive: true});
 
 jsonld.documentLoader = localLoader; // Local loader for JSON-LD
@@ -59,7 +59,7 @@ for (let i = 0; i < setKeys.length; i++) {
   let proofConfig = {};
   proofConfig.type = "DataIntegrityProof";
   proofConfig.id = proofIds[i];
-  proofConfig.cryptosuite = "eddsa-rdfc-2022";
+  proofConfig.cryptosuite = "bip340-rdfc-2025";
   proofConfig.created = "2023-02-24T23:36:38Z";
   // proofConfig.verificationMethod = "https://vc.example/issuers/5678" + (i+1) +
   //   "#" + setKeys[i].publicKeyMultibase;
@@ -87,11 +87,13 @@ for (let i = 0; i < setKeys.length; i++) {
   let combinedHash = concatBytes(proofHash, docHash);
   // writeFile(baseDir + 'combinedHashDataInt.txt', bytesToHex(combinedHash));
 
+  let hashData = sha256(combinedHash);
+
   // Sign
   let privKey = base58btc.decode(setKeys[i].privateKeyMultibase);
   privKey = privKey.slice(2, 34); // only want the first 2-34 bytes
   // console.log(`Secret key length ${privKey.length}, value in hex:`);
-  let signature = await ed.sign(combinedHash, privKey);
+  let signature = await schnorr.sign(hashData, privKey);
   // writeFile(baseDir + 'sigHexDataInt.txt', bytesToHex(signature));
   // console.log("Computed Signature from private key:");
   // console.log(base58btc.encode(signature));
@@ -124,7 +126,7 @@ for (let i = 0; i < chainKeys.length; i++) {
   if (i !== (chainKeys.length - 1)) { // Don't need id for last item in chain
     proofConfigChain.id = proofIds[i+2];
   }
-  proofConfigChain.cryptosuite = "eddsa-rdfc-2022";
+  proofConfigChain.cryptosuite = "bip340-rdfc-2025";
   proofConfigChain.created = `2023-02-26T22:${i}6:38Z`; // Signing later for realism ;-)
   // proofConfigChain.verificationMethod = "https://vc.example/issuers/5678" + (i + 3) +
   //   "#" + keyPairs.keyPair3.publicKeyMultibase;
@@ -171,11 +173,13 @@ for (let i = 0; i < chainKeys.length; i++) {
   let combinedHash = concatBytes(proofHash, docHash);
   // writeFile(baseDir + 'combinedHashDataInt.txt', bytesToHex(combinedHash));
 
+  let hashData = sha256(combinedHash)
+
   // Sign
   let privKey = base58btc.decode(chainKeys[i].privateKeyMultibase);
   privKey = privKey.slice(2, 34); // only want the first 2-34 bytes
   // console.log(`Secret key length ${privKey.length}, value in hex:`);
-  let signature = await ed.sign(combinedHash, privKey);
+  let signature = await schnorr.sign(hashData, privKey);
   // writeFile(baseDir + 'sigHexDataInt.txt', bytesToHex(signature));
   // console.log("Computed Chain Signature from private key:");
   // console.log(base58btc.encode(signature));

@@ -10,9 +10,10 @@ import { base58btc } from "multiformats/bases/base58";
 import {ed25519 as ed} from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils';
+import { schnorr } from '@noble/curves/secp256k1';
 
 // Create output directory for the results
-const baseDir = "./output/eddsa-set-chain-2022/";
+const baseDir = "./output/bip340-chain-set-2025/";
 let status = await mkdir(baseDir, {recursive: true});
 
 jsonld.documentLoader = localLoader; // Local loader for JSON-LD
@@ -72,7 +73,7 @@ for (let i = 0; i < chainKeys.length; i++) {
   if (i !== (chainKeys.length - 1)) { // Don't need id for last item in chain
     proofConfigChain.id = proofIds[i];
   }
-  proofConfigChain.cryptosuite = "eddsa-rdfc-2022";
+  proofConfigChain.cryptosuite = "bip340-rdfc-2025";
   proofConfigChain.created = `2023-02-26T22:${i}6:38Z`; // Signing later for realism ;-)
   proofConfigChain.verificationMethod = 'did:key:' + chainKeys[i].publicKeyMultibase + 
     '#' + chainKeys[i].publicKeyMultibase;
@@ -104,11 +105,13 @@ for (let i = 0; i < chainKeys.length; i++) {
   // Combine hashes
   let combinedHash = concatBytes(proofHash, docHash);
 
+  let hashData = sha256(combinedHash);
+
   // Sign
   let privKey = base58btc.decode(chainKeys[i].privateKeyMultibase);
   privKey = privKey.slice(2, 34); // only want the first 2-34 bytes
   // console.log(`Secret key length ${privKey.length}, value in hex:`);
-  let signature = await ed.sign(combinedHash, privKey);
+  let signature = await schnorr.sign(hashData, privKey);
   proofConfigChain.proofValue = base58btc.encode(signature);
   delete proofConfigChain['@context'];
   writeFile(baseDir + `proofChainSimpleConfigSigned${i+1}.json`, JSON.stringify(proofConfigChain, null, 2));
