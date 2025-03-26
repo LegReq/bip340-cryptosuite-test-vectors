@@ -67,7 +67,8 @@ let hashData = sha256(combinedHash);
 // Get public key
 let encodedPbk = signedDocument.proof.verificationMethod.split("#")[1];
 let pbk = base58btc.decode(encodedPbk);
-pbk = pbk.slice(2, pbk.length); // First two bytes are multi-format indicator
+// First two bytes are multi-format indicator. Third byte is the y value, not required for schnorr
+pbk = pbk.slice(3, pbk.length);
 console.log(`Public Key hex: ${bytesToHex(pbk)}, Length: ${pbk.length}`);
 
 // Verify

@@ -97,7 +97,8 @@ await writeFile(baseDir + 'sigBTC58DataInt.txt', base58btc.encode(signature));
 
 // Verify (just to see we have a good private/public pair)
 let pbk = base58btc.decode(keyPair.publicKeyMultibase);
-pbk = pbk.slice(2, pbk.length); // First two bytes are multi-format indicator
+// First two bytes are multi-format indicator. Third byte is the y value, not required for schnorr
+pbk = pbk.slice(3, pbk.length); 
 console.log(`Public Key hex: ${bytesToHex(pbk)}, Length: ${pbk.length}`);
 let result = await schnorr.verify(signature, hashData, pbk);
 console.log(`Signature verified: ${result}`);

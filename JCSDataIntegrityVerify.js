@@ -4,7 +4,7 @@
     Run this after JCSDataIntegrityCreate.js or modify to read in
     a signed file of your choice. Caveat: No error checking is performed.
 */
-import { readFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import { base58btc } from "multiformats/bases/base58";
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils';
@@ -85,7 +85,8 @@ writeFile(baseDir + 'finalHashJCS.txt', bytesToHex(hashData));
 // Get public key
 let encodedPbk = signedDocument.proof.verificationMethod.split("#")[1];
 let pbk = base58btc.decode(encodedPbk);
-pbk = pbk.slice(2, pbk.length); // First two bytes are multi-format indicator
+// First two bytes are multi-format indicator. Third byte is the y value, not required for schnorr
+pbk = pbk.slice(3, pbk.length); 
 console.log(`Public Key hex: ${bytesToHex(pbk)}, Length: ${pbk.length}`);
 
 // Verify

@@ -9,8 +9,9 @@ import { base58btc } from "multiformats/bases/base58";
 import {ed25519 as ed} from '@noble/curves/ed25519';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils';
+import { schnorr } from '@noble/curves/secp256k1';
 
-const baseDir = "./output/eddsa-set-chain-2022/";
+const baseDir = "./output/bip340-set-chain-2025/";
 
 jsonld.documentLoader = localLoader;
 
@@ -67,15 +68,17 @@ for (let proof of proofs) {
     // Combine hashes
     let combinedHash = concatBytes(proofHash, docHash); // Hash order different from draft
 
+    let hashData = sha256(combinedHash);
+
     // Get public key
     let encodedPbk = proof.verificationMethod.split("#")[1];
     let pbk = base58btc.decode(encodedPbk);
-    pbk = pbk.slice(2, pbk.length); // First two bytes are multi-format indicator
+    pbk = pbk.slice(3, pbk.length); // First two bytes are multi-format indicator
     console.log(`Public Key multibase: ${encodedPbk}`);
 
     // Verify
     let signature = base58btc.decode(proof.proofValue);
-    let result = await ed.verify(signature, combinedHash, pbk);
+    let result = await schnorr.verify(signature, hashData, pbk);
     console.log(`Signature verified: ${result}`);
 }
 
